@@ -16,6 +16,30 @@ pub fn csv_path() -> PathBuf {
     data_dir().join("candidates.csv")
 }
 
+pub fn title_path() -> PathBuf {
+    data_dir().join("title.csv")
+}
+
+/// 读取选举标题（title.csv 第一行）
+pub fn load_title() -> String {
+    let path = title_path();
+    if !path.exists() {
+        let _ = fs::write(&path, "柳树乡党委委员候选人公开投票选举");
+        return "柳树乡党委委员候选人公开投票选举".to_string();
+    }
+    if let Ok(content) = fs::read_to_string(&path) {
+        let first_line = content.lines().next().unwrap_or("").trim().to_string();
+        if !first_line.is_empty() { return first_line; }
+    }
+    "柳树乡党委委员候选人公开投票选举".to_string()
+}
+
+/// 保存选举标题
+pub fn save_title(title: &str) {
+    let _ = fs::create_dir_all(data_dir());
+    let _ = fs::write(title_path(), title);
+}
+
 pub fn json_path() -> PathBuf {
     data_dir().join("votes.json")
 }

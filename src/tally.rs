@@ -53,13 +53,16 @@ pub fn tally_color_image(count: u8) -> egui::ColorImage {
     let mut pixmap = resvg::tiny_skia::Pixmap::new(w, h).unwrap();
     resvg::render(&tree, transform, &mut pixmap.as_mut());
 
-    let pixels = pixmap.pixels();
+    // tiny-skia 的像素是 top-to-bottom，egui ColorImage 需要 bottom-to-top → 翻转 Y
     let mut rgba = Vec::with_capacity(w as usize * h as usize * 4);
-    for p in pixels {
-        rgba.push(p.red());
-        rgba.push(p.green());
-        rgba.push(p.blue());
-        rgba.push(p.alpha());
+    for y in (0..h).rev() {
+        for x in 0..w {
+            let p = pixmap.pixel(x, y).unwrap();
+            rgba.push(p.red());
+            rgba.push(p.green());
+            rgba.push(p.blue());
+            rgba.push(p.alpha());
+        }
     }
 
     egui::ColorImage::from_rgba_unmultiplied([w as usize, h as usize], &rgba)

@@ -28,13 +28,20 @@ pub struct VotingApp {
     pub display: DisplayConfig,
     pub system_scale: f32,
     pub user_scale: f32,
+    /// 选举标题（从 title.csv 读取，可编辑）
+    pub title: String,
+    pub title_edit_buf: String,
 }
 
 impl VotingApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let data = storage::load_save_data();
         let len = data.candidates.len();
         let display = crate::display::load_display_config();
+        // 用 Windows 真实 DPI 作为 system_scale
+        let system_scale = cc.egui_ctx.pixels_per_point().max(1.0);
+        let title = storage::load_title();
+        let title_edit_buf = title.clone();
         Self {
             data,
             current_choices: vec![None; len],
@@ -44,8 +51,10 @@ impl VotingApp {
             editing: false,
             tally_tex: [None, None, None, None, None],
             display,
-            system_scale: 1.0,
+            system_scale,
             user_scale: 1.0,
+            title,
+            title_edit_buf,
         }
     }
 
@@ -113,8 +122,7 @@ impl eframe::App for VotingApp {
             load_misans_font(ctx);
         }
 
-        let native_ppp = ctx.input(|i| i.viewport().native_pixels_per_point);
-        self.system_scale = native_ppp.unwrap_or(1.0);
+        // 应用最终缩放率（系统 DPI × 用户微调）
         ctx.set_pixels_per_point(self.effective_scale());
 
         // 加载画正字纹理（SVG 矢量渲染）
@@ -135,10 +143,27 @@ impl eframe::App for VotingApp {
                 ui.horizontal(|ui| {
                     ui.add_space(16.0);
                     ui.vertical(|ui| {
-                        ui.add_space(6.0);
-                        ui.heading(RichText::new(&self.display.title).size(20.0).color(GOV_GOLD).strong());
+                        ui.add_space(2.0);
+                        // 标题（可点击编辑）
+                        let title_resp = ui.add(egui::Label::new(
+                            RichText::new(&self.title).size(20.0).color(GOV_GOLD).strong().underline(),
+                        ));
+                        title_resp.context_menu(|ui| {
+                            ui.text_edit_singleline(&mut self.title_edit_buf);
+                            if ui.button("保存").clicked() {
+                                let new_title = self.title_edit_buf.trim().to_string();
+                                if !new_title.is_empty() {
+                                    self.title = new_title.clone();
+                                    storage::save_title(&new_title);
+                                    self.status_msg = "标题已保存".to_string();
+                                }
+                                ui.close_menu();
+                            }
+                        });
+                        title_resp.on_hover_text("右键点击编辑标题");
+
                         ui.label(RichText::new(format!(
-                            "共 {} 位候选人 | {:.0}%",
+                            "共 {} 位 | {:.0}%",
                             self.data.candidates.len(),
                             self.effective_scale() * 100.0
                         )).size(12.0).color(Color32::WHITE));
