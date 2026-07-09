@@ -9,6 +9,7 @@
 mod display;
 mod models;
 mod storage;
+mod tally;
 mod ui;
 mod util;
 
