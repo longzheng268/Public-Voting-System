@@ -31,6 +31,8 @@ pub struct VotingApp {
     /// 选举标题（从 title.csv 读取，可编辑）
     pub title: String,
     pub title_edit_buf: String,
+    /// 历史记录栈：保存每次提交前的数据状态（用于撤销）
+    pub history: Vec<SaveData>,
 }
 
 impl VotingApp {
@@ -55,6 +57,7 @@ impl VotingApp {
             user_scale: 1.25,
             title,
             title_edit_buf,
+            history: Vec::new(),
         }
     }
 
@@ -71,6 +74,9 @@ impl VotingApp {
     }
 
     pub fn submit(&mut self) {
+        // ★ 先保存当前状态到历史栈（用于撤销）
+        self.history.push(self.data.clone());
+        // 应用投票
         for (i, ch) in self.current_choices.iter().enumerate() {
             if let Some(c) = ch {
                 if i < self.data.candidates.len() {
@@ -84,7 +90,24 @@ impl VotingApp {
         }
         self.current_choices = vec![None; self.data.candidates.len()];
         self.save();
-        self.status_msg = "✓ 投票结果已确认并保存".to_string();
+        self.status_msg = "✓ 投票结果已确认并保存（可撤销）".to_string();
+    }
+
+    /// 撤销：恢复上一次提交前的状态
+    pub fn undo(&mut self) {
+        if let Some(prev) = self.history.pop() {
+            self.data = prev;
+            self.current_choices = vec![None; self.data.candidates.len()];
+            self.save();
+            self.status_msg = "✓ 已撤销上一次投票".to_string();
+        } else {
+            self.status_msg = "✗ 没有可撤销的操作".to_string();
+        }
+    }
+
+    /// 是否有可撤销的历史
+    pub fn can_undo(&self) -> bool {
+        !self.history.is_empty()
     }
 
     pub fn add_candidate(&mut self, name: &str) {
@@ -319,13 +342,28 @@ fn render_voting(ui: &mut egui::Ui, app: &mut VotingApp) {
 
     ui.add_space(8.0);
 
-    // 提交按钮
+    // 确认投票 + 撤销误投 按钮
     ui.vertical_centered(|ui| {
-        let btn = egui::Button::new(RichText::new("  确认最终结果  ").size(16.0).strong().color(Color32::WHITE))
-            .fill(GOV_RED).rounding(Rounding::same(8.0)).min_size(vec2(220.0, 44.0));
-        if ui.add(btn).clicked() { app.submit(); }
+        ui.horizontal(|ui| {
+            // 确认投票
+            let submit_btn = egui::Button::new(
+                RichText::new("  确认投票  ").size(16.0).strong().color(Color32::WHITE)
+            )
+            .fill(GOV_RED).rounding(Rounding::same(8.0)).min_size(vec2(160.0, 44.0));
+            if ui.add(submit_btn).clicked() { app.submit(); }
+
+            ui.add_space(12.0);
+
+            // 撤销误投
+            let undo_btn = egui::Button::new(
+                RichText::new("  撤销误投  ").size(16.0).strong().color(Color32::WHITE)
+            )
+            .fill(if app.can_undo() { Color32::from_rgb(0x66, 0x66, 0x66) } else { Color32::from_rgb(0xAA, 0xAA, 0xAA) })
+            .rounding(Rounding::same(8.0)).min_size(vec2(160.0, 44.0));
+            if ui.add(undo_btn).clicked() { app.undo(); }
+        });
         ui.add_space(2.0);
-        ui.label(RichText::new("点击暂存选择，提交后更新正字").size(10.0).color(Color32::GRAY));
+        ui.label(RichText::new("点击暂存选择 → 确认投票后正字更新 → 撤销可恢复上一轮").size(10.0).color(Color32::GRAY));
     });
 }
 
