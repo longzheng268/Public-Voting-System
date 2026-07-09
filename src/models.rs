@@ -1,8 +1,24 @@
-//! 数据模型（候选人、投票记录）
+//! 数据模型
 
 use serde::{Deserialize, Serialize};
 
-/// 单个候选人的得票记录
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum VoteChoice {
+    Approve,
+    Oppose,
+    Abstain,
+}
+
+impl VoteChoice {
+    pub fn label(self) -> &'static str {
+        match self {
+            VoteChoice::Approve => "赞成",
+            VoteChoice::Oppose => "不赞成",
+            VoteChoice::Abstain => "弃权",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Candidate {
     pub id: u32,
@@ -24,36 +40,14 @@ impl Candidate {
     }
 }
 
-/// 单轮投票的选择
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
-pub enum VoteChoice {
-    Approve,  // 赞成
-    Oppose,   // 不赞成
-    Abstain,  // 弃权
-}
-
-impl VoteChoice {
-    pub fn label(self) -> &'static str {
-        match self {
-            VoteChoice::Approve => "赞成",
-            VoteChoice::Oppose => "不赞成",
-            VoteChoice::Abstain => "弃权",
-        }
-    }
-}
-
-/// 所有需要持久化的数据
+/// 所有需要持久化的数据（去掉 round）
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SaveData {
     pub candidates: Vec<Candidate>,
-    pub round: u32, // 已完成投票轮次
 }
 
 impl SaveData {
     pub fn new(candidates: Vec<Candidate>) -> Self {
-        Self {
-            candidates,
-            round: 0,
-        }
+        Self { candidates }
     }
 }
