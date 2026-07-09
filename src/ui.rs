@@ -200,139 +200,107 @@ fn render_voting(ui: &mut egui::Ui, app: &mut VotingApp) {
     let d = app.display.clone();
     let total = app.data.candidates.len();
     let voted = app.voted_count();
-    let pending = total - voted;
 
-    // 工具栏
-    ui.horizontal(|ui| {
-        if ui.add(Button::new(RichText::new(&d.btn_manage).strong()).fill(GOV_RED).min_size(vec2(100.0, 32.0))).clicked() { app.editing = true; }
-        if ui.add(Button::new(RichText::new(&d.btn_export).strong()).fill(GOV_DARK_RED).min_size(vec2(100.0, 32.0))).clicked() {
+    // 工具栏（使用换行布局）
+    ui.horizontal_wrapped(|ui| {
+        if ui.add(Button::new(RichText::new("  管理候选人  ").strong()).fill(GOV_RED).min_size(vec2(110.0, 34.0))).clicked() { app.editing = true; }
+        ui.add_space(4.0);
+        if ui.add(Button::new(RichText::new("  导出结果  ").strong()).fill(GOV_DARK_RED).min_size(vec2(100.0, 34.0))).clicked() {
             match storage::export_results(&app.data) {
                 Ok(p) => app.status_msg = format!("已导出 {}", p.display()),
                 Err(e) => app.status_msg = format!("导出失败: {}", e),
             }
         }
-        if ui.add(Button::new(RichText::new(&d.btn_reset).strong()).fill(Color32::from_rgb(0x66, 0x66, 0x66)).min_size(vec2(72.0, 32.0))).clicked() { app.reset_votes(); }
-        ui.separator();
-        ui.label(RichText::new("文字大小").size(12.0));
+        ui.add_space(4.0);
+        if ui.add(Button::new(RichText::new("  重置  ").strong()).fill(Color32::from_rgb(0x66, 0x66, 0x66)).min_size(vec2(72.0, 34.0))).clicked() { app.reset_votes(); }
+    });
+
+    ui.add_space(4.0);
+
+    // 缩放控制（单独一行）
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("文字大小:").size(12.0));
         ui.add(Slider::new(&mut app.user_scale, 0.75..=1.5).text(""));
-        ui.label(RichText::new(format!("{:.0}%", app.effective_scale() * 100.0)).size(11.0).color(Color32::GRAY));
-        if ui.button(RichText::new("恢复").size(11.0)).clicked() { app.user_scale = 1.0; }
+        ui.label(RichText::new(format!("{:.0}%", app.effective_scale() * 100.0)).size(12.0).color(Color32::GRAY));
+        if ui.button(RichText::new("恢复").size(12.0)).clicked() { app.user_scale = 1.0; }
     });
 
-    ui.add_space(8.0);
+    ui.add_space(6.0);
 
-    // 进度卡片
-    egui::Frame::default()
-        .fill(if pending == 0 { Color32::from_rgb(0xE8, 0xF5, 0xE9) } else { Color32::from_rgb(0xFF, 0xF3, 0xE0) })
-        .inner_margin(Margin::symmetric(12.0, 10.0))
-        .rounding(Rounding::same(8.0))
-        .show(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.label(RichText::new(format!("已投票：{} / {} 人", voted, total)).size(16.0).strong().color(GOV_DARK_RED));
-                if pending > 0 {
-                    ui.add_space(20.0);
-                    ui.label(RichText::new(format!("还有 {} 人未选", pending)).size(14.0).color(Color32::from_rgb(0xE6, 0x51, 0x00)).strong());
-                } else {
-                    ui.add_space(20.0);
-                    ui.label(RichText::new("全部已选择，可以提交").size(14.0).color(Color32::from_rgb(0x1B, 0x7A, 0x2E)).strong());
-                }
-            });
-        });
-
-    ui.add_space(8.0);
-
-    // 表头
-    egui::Frame::default().fill(GOV_RED).inner_margin(Margin::symmetric(4.0, 5.0)).show(ui, |ui| {
-        ui.columns(8, |cols| {
-            let labels = ["序号", "姓名", "赞成", "不赞成", "弃权", "赞成", "不赞成", "弃权"];
-            for (i, label) in labels.iter().enumerate() {
-                cols[i].centered_and_justified(|ui| {
-                    ui.label(RichText::new(*label).color(GOV_GOLD).strong().size(12.0));
-                });
-            }
-        });
-    });
-
-    ui.add_space(2.0);
-
-    // 候选人行（使用 Grid 确保行高）
+    // ★ 主表格区：使用 Grid（最稳定的行列布局）
     let snap: Vec<(Candidate, Option<VoteChoice>)> = app.data.candidates.iter()
         .zip(app.current_choices.iter())
         .map(|(c, ch)| (c.clone(), *ch)).collect();
 
-    // 列宽分配
-    let col_widths = [40.0, 90.0, 80.0, 90.0, 80.0, 80.0, 80.0, 80.0];
-
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
-        .max_height(ui.available_height() - 56.0)
+        .max_height(ui.available_height() - 50.0)
         .show(ui, |ui| {
-            for (i, (cand, ch)) in snap.iter().enumerate() {
-                let voted_flag = ch.is_some();
-                let bg = if !voted_flag { Color32::from_rgb(0xFF, 0xF8, 0xE1) } else if i % 2 == 0 { ROW_EVEN } else { ROW_ODD };
-                let row_h = 44.0;
+            egui::Grid::new("voting_grid")
+                .striped(true)
+                .min_col_width(30.0)
+                .show(ui, |ui| {
+                    // 表头
+                    ui.label(RichText::new("序号").color(GOV_GOLD).strong().size(13.0));
+                    ui.label(RichText::new("姓名").color(GOV_GOLD).strong().size(13.0));
+                    ui.label(RichText::new(&d.col_approve).color(GOV_GOLD).strong().size(13.0));
+                    ui.label(RichText::new(&d.col_oppose).color(GOV_GOLD).strong().size(13.0));
+                    ui.label(RichText::new(&d.col_abstain).color(GOV_GOLD).strong().size(13.0));
+                    ui.label(RichText::new("赞成").color(GOV_GOLD).strong().size(12.0));
+                    ui.label(RichText::new("不赞成").color(GOV_GOLD).strong().size(12.0));
+                    ui.label(RichText::new("弃权").color(GOV_GOLD).strong().size(12.0));
+                    ui.end_row();
 
-                egui::Frame::default().fill(bg).inner_margin(Margin::symmetric(6.0, 4.0)).show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        // 序号
-                        ui.set_min_height(row_h);
-                        ui.vertical(|ui| ui.add(egui::Label::new(RichText::new(format!("{:02}", i + 1)).size(15.0).strong().color(GOV_RED))));
-                        ui.set_width(col_widths[0]);
+                    // 数据行
+                    for (i, (cand, ch)) in snap.iter().enumerate() {
+                        // 序号 + 姓名
+                        ui.label(RichText::new(format!("{:02}", i + 1)).size(14.0).strong().color(GOV_RED));
+                        ui.label(RichText::new(&cand.name).size(14.0).strong().color(GOV_DARK_RED));
 
-                        // 姓名
-                        ui.vertical(|ui| ui.add(egui::Label::new(RichText::new(&cand.name).size(16.0).strong().color(GOV_DARK_RED))));
-                        ui.set_width(col_widths[1]);
-
-                        // 赞成按钮
+                        // 三个投票按钮
                         let sel = *ch == Some(VoteChoice::Approve);
-                        let btn = egui::Button::new(RichText::new(&d.col_approve).size(13.0).strong().color(Color32::WHITE))
-                            .fill(if sel { Color32::from_rgb(0x1B, 0x7A, 0x2E) } else { Color32::from_rgb(0x81, 0xC7, 0x84) })
-                            .rounding(Rounding::same(6.0)).min_size(vec2(col_widths[2] - 6.0, row_h - 8.0));
+                        let btn = egui::Button::new(
+                            RichText::new(&d.col_approve).size(13.0).strong().color(Color32::WHITE)
+                        )
+                        .fill(if sel { Color32::from_rgb(0x1B, 0x7A, 0x2E) } else { Color32::from_rgb(0x81, 0xC7, 0x84) })
+                        .rounding(Rounding::same(4.0));
                         if ui.add(btn).clicked() { app.select(i, VoteChoice::Approve); }
-                        ui.set_width(col_widths[2]);
 
-                        // 不赞成按钮
                         let sel = *ch == Some(VoteChoice::Oppose);
-                        let btn = egui::Button::new(RichText::new(&d.col_oppose).size(13.0).strong().color(Color32::WHITE))
-                            .fill(if sel { Color32::from_rgb(0xC6, 0x28, 0x28) } else { Color32::from_rgb(0xE5, 0x73, 0x73) })
-                            .rounding(Rounding::same(6.0)).min_size(vec2(col_widths[3] - 6.0, row_h - 8.0));
+                        let btn = egui::Button::new(
+                            RichText::new(&d.col_oppose).size(13.0).strong().color(Color32::WHITE)
+                        )
+                        .fill(if sel { Color32::from_rgb(0xC6, 0x28, 0x28) } else { Color32::from_rgb(0xE5, 0x73, 0x73) })
+                        .rounding(Rounding::same(4.0));
                         if ui.add(btn).clicked() { app.select(i, VoteChoice::Oppose); }
-                        ui.set_width(col_widths[3]);
 
-                        // 弃权按钮
                         let sel = *ch == Some(VoteChoice::Abstain);
-                        let btn = egui::Button::new(RichText::new(&d.col_abstain).size(13.0).strong().color(Color32::WHITE))
-                            .fill(if sel { Color32::from_rgb(0x55, 0x55, 0x55) } else { Color32::from_rgb(0xBB, 0xBB, 0xBB) })
-                            .rounding(Rounding::same(6.0)).min_size(vec2(col_widths[4] - 6.0, row_h - 8.0));
+                        let btn = egui::Button::new(
+                            RichText::new(&d.col_abstain).size(13.0).strong().color(Color32::WHITE)
+                        )
+                        .fill(if sel { Color32::from_rgb(0x55, 0x55, 0x55) } else { Color32::from_rgb(0xBB, 0xBB, 0xBB) })
+                        .rounding(Rounding::same(4.0));
                         if ui.add(btn).clicked() { app.select(i, VoteChoice::Abstain); }
-                        ui.set_width(col_widths[4]);
 
-                        // 赞成正字
-                        ui.set_width(col_widths[5]);
-                        tally_images_ui(ui, cand.approve, &app.tally_tex, 24.0);
+                        // 三个画正字显示
+                        tally_images_ui(ui, cand.approve, &app.tally_tex, 22.0);
+                        tally_images_ui(ui, cand.oppose, &app.tally_tex, 22.0);
+                        tally_images_ui(ui, cand.abstain, &app.tally_tex, 22.0);
 
-                        // 不赞成正字
-                        ui.set_width(col_widths[6]);
-                        tally_images_ui(ui, cand.oppose, &app.tally_tex, 24.0);
-
-                        // 弃权正字
-                        ui.set_width(col_widths[7]);
-                        tally_images_ui(ui, cand.abstain, &app.tally_tex, 24.0);
-                    });
+                        ui.end_row();
+                    }
                 });
-                ui.add_space(2.0);
-            }
         });
 
     ui.add_space(8.0);
 
     // 提交按钮
     ui.vertical_centered(|ui| {
-        let btn = egui::Button::new(RichText::new("确认最终结果").size(16.0).strong().color(Color32::WHITE))
-            .fill(GOV_RED).rounding(Rounding::same(8.0)).min_size(vec2(240.0, 44.0));
+        let btn = egui::Button::new(RichText::new("  确认最终结果  ").size(16.0).strong().color(Color32::WHITE))
+            .fill(GOV_RED).rounding(Rounding::same(8.0)).min_size(vec2(220.0, 44.0));
         if ui.add(btn).clicked() { app.submit(); }
         ui.add_space(2.0);
-        ui.label(RichText::new("点击按钮暂存选择，提交后正字自动更新").size(10.0).color(Color32::GRAY));
+        ui.label(RichText::new("点击暂存选择，提交后更新正字").size(10.0).color(Color32::GRAY));
     });
 }
 
