@@ -18,7 +18,7 @@
 ## 界面预览
 
 ### 投票主页（默认状态）
-![投票主页默认](resources/screenshots/投票主业默认.png)
+![投票主页默认](resources/screenshots/投票主页默认.png)
 
 ### 投票主页（画正字效果）
 ![投票主页正字状态](resources/screenshots/投票主页正字状态.png)
