@@ -1,0 +1,13 @@
+[package]
+name = "voting_app"
+version = "1.0.0"
+edition = "2021"
+description = "柳树乡党委委员候选人公开投票选举软件"
+
+[dependencies]
+egui = "0.28"
+eframe = { version = "0.28", features = ["default"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+image = "0.25"
+toml = "0.8"

@@ -1,0 +1,4 @@
+/target
+/data/votes.json
+/data/投票结果.txt
+*.exe
