@@ -18,15 +18,19 @@
 ## 界面预览
 
 ### 投票主页（默认状态）
+
 ![投票主页默认](resources/screenshots/投票主页默认.png)
 
 ### 投票主页（画正字效果）
+
 ![投票主页正字状态](resources/screenshots/投票主页正字状态.png)
 
 ### 右键编辑标题
+
 ![编辑标题](resources/screenshots/编辑标题.png)
 
 ### 管理候选人
+
 ![管理候选人](resources/screenshots/管理候选人.png)
 
 ## 使用说明
