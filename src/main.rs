@@ -1,4 +1,5 @@
 //! 柳树乡党委委员候选人公开投票选举软件
+#![windows_subsystem = "windows"]
 
 mod display;
 mod models;
