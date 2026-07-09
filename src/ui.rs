@@ -61,8 +61,8 @@ impl VotingApp {
     fn save(&self) { storage::save_save_data(&self.data); }
 
     pub fn effective_scale(&self) -> f32 {
-        // 限制最大缩放不超过 160%，避免内容溢出
-        (self.system_scale * self.user_scale).clamp(0.75, 1.6)
+        // 滑块 × 系统 DPI，允许大范围粗调和微调
+        (self.system_scale * self.user_scale).clamp(0.5, 3.0)
     }
 
     pub fn select(&mut self, idx: usize, choice: VoteChoice) {
@@ -245,7 +245,7 @@ fn render_voting(ui: &mut egui::Ui, app: &mut VotingApp) {
     // 缩放控制（单独一行）
     ui.horizontal(|ui| {
         ui.label(RichText::new("文字大小:").size(12.0));
-        ui.add(Slider::new(&mut app.user_scale, 0.75..=1.5).text(""));
+        ui.add(Slider::new(&mut app.user_scale, 0.5..=3.0).text(""));
         ui.label(RichText::new(format!("{:.0}%", app.effective_scale() * 100.0)).size(12.0).color(Color32::GRAY));
         if ui.button(RichText::new("恢复").size(12.0)).clicked() { app.user_scale = 1.0; }
     });
