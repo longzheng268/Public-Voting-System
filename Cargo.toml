@@ -1,5 +1,5 @@
 [package]
-name = "voting_app"
+name = "public-voting-ver1_0"
 version = "1.0.0"
 edition = "2021"
 description = "柳树乡党委委员候选人公开投票选举软件"
@@ -12,3 +12,11 @@ serde_json = "1.0"
 image = "0.25"
 toml = "0.8"
 resvg = "0.41"
+
+[build-dependencies]
+embed-resource = "2.5"
+
+[package.metadata.winres]
+OriginalFilename = "public_Voting_ver1.0.exe"
+FileDescription = "柳树乡党委委员候选人公开投票选举软件"
+LegalCopyright = "内部使用"

@@ -47,12 +47,12 @@ fn main() -> eframe::Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size(egui::vec2(900.0 * dpi_scale, 700.0 * dpi_scale))
             .with_min_inner_size(egui::vec2(700.0 * dpi_scale, 500.0 * dpi_scale))
-            .with_title("柳树乡党委委员候选人公开投票选举"),
+            .with_title("候选人公开投票选举 v1.0系统"),
         ..Default::default()
     };
     let dpi = dpi_scale;
     eframe::run_native(
-        "柳树乡党委委员候选人公开投票选举",
+        "候选人公开投票选举 v1.0系统",
         options,
         Box::new(move |cc| {
             cc.egui_ctx.set_pixels_per_point(dpi);

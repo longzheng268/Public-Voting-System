@@ -9,4 +9,10 @@ fn main() {
         println!("cargo:rerun-if-changed=resources/img/{}.png", n);
     }
     println!("cargo:rerun-if-changed=resources/img/");
+
+    // 嵌入 Windows ico 图标资源
+    #[cfg(windows)]
+    {
+        let _ = embed_resource::compile("resources/icons/embed_icon.rc", std::iter::empty::<&str>());
+    }
 }
